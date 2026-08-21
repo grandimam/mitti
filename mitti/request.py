@@ -1,3 +1,5 @@
+import json
+
 from functools import cached_property
 from typing import final
 
@@ -48,23 +50,26 @@ class Request:
         if not isinstance(_payload["type"], str):
             raise ValueError("Type must be str")
 
+        _type = _payload["type"]
+
         if not isinstance(_payload["more_body"], bool):
             raise ValueError("More body must be bool")
-
-        _type = _payload["type"]
 
         if _type == "http.disconnect":
             raise RuntimeError("Http connection disconnected")
 
+        if not isinstance(_payload["body"], bytes):
+            raise ValueError("Body must be bytes")
+
         if _type == "http.request":
             _body: bytes = _payload["body"]
             _chunks: list[bytes] = [_body]
-
             if not _payload.get("more_body", False):
                 return b"".join(_chunks)
-
             while True:
                 _payload = await self._receive()
+                if not isinstance(_payload["body"], bytes):
+                    raise ValueError("Body must be bytes")
                 _chunk: bytes = _payload["body"]
                 _chunks.append(_chunk)
                 if not _payload.get("more_body", False):
@@ -72,5 +77,5 @@ class Request:
             return b"".join(_chunks)
 
     async def json(self):
-        _body: bytes = await self.body()
-        return json.loads(_body)
+        _body: bytes | None = await self.body()
+        return json.loads(_body) if _body else None
