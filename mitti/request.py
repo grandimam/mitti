@@ -1,12 +1,26 @@
 import json
-
 from functools import cached_property
 from typing import final
+from urllib.parse import parse_qsl
 
-from mitti.types import Scope
 from mitti.types import Receive
-
+from mitti.types import Scope
 from mitti.utils import is_str
+
+
+class Headers:
+
+
+    def __init__(self, headers) -> None:
+        self._raw = headers
+
+class QueryParams:
+
+    def __init__(self, query_string: bytes = b"") -> None:
+        self._query = parse_qsl(
+            query_string.decode('latin-1'),
+            keep_blank_values=True,
+        )
 
 @final
 class Request:
@@ -18,6 +32,7 @@ class Request:
     request = Request(scope, receive)
 
     Request should process the body, and handle http.request and http.disconnect.
+    It also parses the headers and query_params.
     """
 
     def __init__(self, scope: Scope, receive: Receive) -> None:
@@ -38,32 +53,30 @@ class Request:
             raise ValueError("Path must be a str")
         return str(_method)
 
-    def headers(self):
-        pass
+    @cached_property
+    def headers(self) -> Headers:
+        _headers = self._scope["headers"]
+        if not isinstance(_headers, list):
+            raise ValueError("Headers must be a list")
+        return Headers(_headers)
 
-    def query(self):
-        pass
+    @cached_property
+    def query(self) -> QueryParams:
+        _query = self._scope["query_string"]
+        if not isinstance(_query, bytes):
+            raise ValueError("Query string must be bytes")
+        return QueryParams(_query)
 
     async def body(self) -> bytes | None:
         _payload = await self._receive()
-
-        if not isinstance(_payload["type"], str):
-            raise ValueError("Type must be str")
-
         _type = _payload["type"]
-
-        if not isinstance(_payload["more_body"], bool):
-            raise ValueError("More body must be bool")
 
         if _type == "http.disconnect":
             raise RuntimeError("Http connection disconnected")
 
-        if not isinstance(_payload["body"], bytes):
-            raise ValueError("Body must be bytes")
-
         if _type == "http.request":
-            _body: bytes = _payload["body"]
-            _chunks: list[bytes] = [_body]
+            _body = _payload["body"]
+            _chunks: list = [_body]
             if not _payload.get("more_body", False):
                 return b"".join(_chunks)
             while True:
