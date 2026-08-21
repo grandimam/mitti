@@ -6,6 +6,7 @@ from mitti.types import Scope
 from mitti.types import Receive
 from mitti.types import Send
 
+from mitti.router import Router
 from mitti.request import Request
 
 class Mitti:
@@ -27,14 +28,49 @@ class Mitti:
             pass
     """
 
-    async def handle_http(self, scope: Scope, receive: Receive) -> None:
+    def __init__(
+        self,
+        *,
+        route_path: str
+    ) -> None:
+        self._route_path = route_path
+        self._routes = []
+
+    async def _lifespan(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        while True:
+            message = await receive()
+            if message['type'] == 'lifespan.startup':
+                # we should create the routes
+                await send({'type': 'lifespan.startup.complete'})
+            elif message['type'] == 'lifespan.shutdown':
+                # figure out what to do with this
+                await send({'type': 'lifespan.shutdown.complete'})
+                return
+
+    async def _http(
+        self,
+        scope: Scope,
+        receive: Receive,
+    ) -> None:
         request: Request = Request(scope, receive)
+        router = Router(routes=self._routes)
+        pass
 
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ):
         _scope = copy.deepcopy(scope)
-        _scope_type: str = str(_scope["type"])
-
-        if _scope_type == "http":
-            await self.handle_http(_scope, receive)
+        if _scope["type"] == "lifespan":
+            await self._lifespan(scope, receive, send)
+        elif _scope["type"] == "http":
+            await self._http(_scope, receive)
         raise NotImplementedError
