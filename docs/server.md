@@ -37,4 +37,22 @@ path_route = PathRoute(path, method)
 
 ## Router
 
-One of the challenges is the router. I went with the approach of usign modules as routing criteria.
+One of the challenges is the router. I went with the approach of usign modules as routing criteria. 
+For this, we can add a field `router_dir` in the top-level ASGI application.
+This will be used for determining the route details
+
+```bash
+# So anything inside the routes direction will be used to determine
+# the route path.
+/routes/
+```
+
+So, effectively we will have the following folder structure for the project.
+
+```bash
+/routes
+/services
+/dependencies
+/tasks
+/commands
+```

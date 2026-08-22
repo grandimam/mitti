@@ -1,24 +1,22 @@
-import functools
+import sys
 
-from collections.abc import Callable
+from mitti.schema import EndpointMethod
+from mitti.schema import Route
 
-def get(path: str):
-    """
-    This is the http operation
+def _endpoint(method: str):
+    def wrapper(func):
+        module = sys.modules[func.__module__]
+        routes = getattr(module, "__mitti_routes__", None)
+        if routes is None:
+            routes = []
+            setattr(module, "__mitti_routes__", routes)
+        routes.append(Route(method=method, handler=func))
+        return func
+    return wrapper
 
-    # suppose it's inside
-    # api/
-    @get("{user_id}/")
-    async def get_user():
-        pass
 
-    We need to understand where the get_user function
-    is location
-    """
-    def decorator(func: Callable):
-        @functools.wraps(func)
-        def wrap(*args, **kwargs):
-
-            pass
-        return wrap
-    return decorator
+get = _endpoint(EndpointMethod.GET.value)
+post = _endpoint(EndpointMethod.POST.value)
+put = _endpoint(EndpointMethod.PUT.value)
+patch = _endpoint(EndpointMethod.PATCH.value)
+delete = _endpoint(EndpointMethod.DELETE.value)

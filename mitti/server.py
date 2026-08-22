@@ -6,7 +6,7 @@ from mitti.types import Scope
 from mitti.types import Receive
 from mitti.types import Send
 
-from mitti.router import Router
+from mitti.router import _Router
 from mitti.request import Request
 
 class Mitti:
@@ -31,10 +31,26 @@ class Mitti:
     def __init__(
         self,
         *,
-        route_path: str
+        routes: list | None = None,
+        services: list | None = None,
+        service_dir: str = "services",
+        route_dir: str = "routes",
     ) -> None:
-        self._route_path = route_path
-        self._routes = []
+        if not routes:
+            routes = []
+
+        if not services:
+            services = []
+
+        self._routes = routes
+        self._services = services
+
+        # metadata
+        self._route_dir: str = route_dir
+        self._service_dir: str = service_dir
+
+        # router
+        self._router = _Router(route_dir=self._route_dir)
 
     async def _lifespan(
         self,
@@ -45,10 +61,9 @@ class Mitti:
         while True:
             message = await receive()
             if message['type'] == 'lifespan.startup':
-                # we should create the routes
+                self._router.discover()
                 await send({'type': 'lifespan.startup.complete'})
             elif message['type'] == 'lifespan.shutdown':
-                # figure out what to do with this
                 await send({'type': 'lifespan.shutdown.complete'})
                 return
 
@@ -57,8 +72,7 @@ class Mitti:
         scope: Scope,
         receive: Receive,
     ) -> None:
-        request: Request = Request(scope, receive)
-        router = Router(routes=self._routes)
+        request = Request(scope, receive)
         pass
 
 
