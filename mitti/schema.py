@@ -12,7 +12,7 @@ class EndpointMethod(Enum):
 
 
 @dataclass
-class Route:
+class _Route:
     method: str
     handler: Callable | None = None
     endpoint: str | None = None

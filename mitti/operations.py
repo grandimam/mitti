@@ -1,7 +1,7 @@
 import sys
 
 from mitti.schema import EndpointMethod
-from mitti.schema import Route
+from mitti.schema import _Route
 
 def _endpoint(method: str):
     def wrapper(func):
@@ -10,7 +10,7 @@ def _endpoint(method: str):
         if routes is None:
             routes = []
             setattr(module, "__mitti_routes__", routes)
-        routes.append(Route(method=method, handler=func))
+        routes.append(_Route(method=method, handler=func))
         return func
     return wrapper
 

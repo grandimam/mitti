@@ -1,9 +1,4 @@
-import copy
-
-from pathlib import Path
-
-from importlib import import_module
-from mitti.schema import Route
+from mitti.schema import _Route
 
 
 class _Router:
@@ -16,41 +11,24 @@ class _Router:
     """
 
     def __init__(self,
-        *,
-        routes: list | None = None,
-        route_dir: str | None = None,
-    ) -> None:
-        self._route_dir = route_dir
-
-        if not routes:
-            routes = []
-
-        self._routes: list[Route] = copy.deepcopy(routes)
+                 *,
+                 routes: list[_Route] | None = None,
+                 ) -> None:
+        self._routes: list[_Route] = routes if routes else []
 
 
-    def discover(self) -> None:
-        if not self._route_dir:
-            return
-        root = Path(self._route_dir)
-        nodes = [root]
-        while nodes:
-            curr_node = nodes.pop()
-            if not curr_node.is_dir():
-                continue
-            if (curr_node / "__init__.py").is_file():
-                module_name = ".".join(curr_node.parts)
-                module = import_module(module_name)
-                endpoints = getattr(module, "__mitti_routes__", [])
-                self._routes.extend(endpoints)
-            nodes.append(
-                child
-                for child in curr_node.iterdir()
-                if child.is_dir()
-            )
+    def match(self, path: str, method: str) -> _Route | None:
+        """
+        Method allows for matching the input path to the callable.
+        We need to handle cases where there are multiple matches for
+        top-level routes. For example:
 
-
-    def match(self, path: str, method: str) -> Route | None:
+        @app.get('/user/{user_id}/')
+        @app.get('/user/{user_id}/posts')
+        @app.get('/user/{user_id}/comments')
+        """
         for route in self._routes:
             if route.endpoint == path and route.method == method:
                 return route
-        return
+        return None
+

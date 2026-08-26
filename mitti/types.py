@@ -1,9 +1,11 @@
+from typing import Any
+
 from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import MutableMapping
 
-Scope = MutableMapping[str, object]
-Message = MutableMapping[str, object]
+Scope = MutableMapping[str, Any]
+Message = MutableMapping[str, Any]
 
 Receive = Callable[[], Awaitable[Message]]
 Send = Callable[[Message], Awaitable[None]]
