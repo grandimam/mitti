@@ -1,3 +1,3 @@
-from mitti.application import Mitti
+from mitti.server import Mitti
 
 app = Mitti()

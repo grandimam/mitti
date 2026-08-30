@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 from enum import Enum
 
+
 class EndpointMethod(Enum):
     GET = "GET"
     POST = "POST"

@@ -8,36 +8,24 @@ from mitti.types import Scope
 
 
 class Headers:
-
     def __init__(self, headers) -> None:
         self._raw = headers
 
 
 class QueryParams:
-
     def __init__(self, query_string: bytes = b"") -> None:
         self._query = parse_qsl(
-            query_string.decode('latin-1'),
+            query_string.decode("latin-1"),
             keep_blank_values=True,
         )
 
 
 @final
 class Request:
-    """
-    Top-level class to handle the request metadata and body.
-    This includes QueryParams, Headers, and Body
-
-    request = Request(scope, receive)
-
-    Request should process the body, and handle http.request and http.disconnect.
-    It also parses the headers and query_params.
-    """
-
     def __init__(
-            self,
-            scope: Scope,
-            receive: Receive,
+        self,
+        scope: Scope,
+        receive: Receive,
     ) -> None:
         self._scope = scope
         self._receive = receive

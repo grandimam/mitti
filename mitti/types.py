@@ -2,12 +2,11 @@ from typing import Any
 
 from collections.abc import Awaitable
 from collections.abc import Callable
-from collections.abc import MutableMapping
 
-Scope = MutableMapping[str, Any]
-Message = MutableMapping[str, Any]
+Scope = dict[str, Any]
+Message = dict[str, Any]
 
-Receive = Callable[[], Awaitable[Message]]
+Receive = Callable[[], Awaitable[dict]]
 Send = Callable[[Message], Awaitable[None]]
 
 MittiApp = Callable[[Scope, Receive, Send], Awaitable[None]]
