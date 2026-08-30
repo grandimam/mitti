@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 from enum import Enum
 
+
 class Match(Enum):
     NONE = 0
     PARTIAL = 1
