@@ -25,10 +25,16 @@ class QueryParams:
         )
 
 
-@dataclass
+
 class BaseRequest(ABC):
-    scope = Scope
-    receive = Receive
+
+    def __init__(
+            self,
+            scope: Scope,
+            receive: Receive,
+    ):
+        self._scope = scope
+        self._receive = receive
 
     @abstractmethod
     async def body(self):
@@ -39,27 +45,27 @@ class BaseRequest(ABC):
 class Request(BaseRequest):
     @cached_property
     def path(self) -> str:
-        return self.scope["path"]
+        return self._scope["path"]
 
     @cached_property
     def method(self) -> str:
-        return self.scope["method"]
+        return self._scope["method"]
 
     @cached_property
     def headers(self) -> Headers:
-        _headers = self.scope["headers"]
+        _headers = self._scope["headers"]
         return Headers(_headers)
 
     @cached_property
     def query(self) -> QueryParams:
-        _query = self.scope["query_string"]
+        _query = self._scope["query_string"]
         return QueryParams(_query)
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []
 
         while True:
-            _payload = await self.receive()
+            _payload = await self._receive()
             _type = _payload["type"]
 
             if _type == "http.disconnect":

@@ -8,8 +8,6 @@ from mitti.types import Send
 
 from mitti.routing import BaseRoute
 from mitti.request import Request
-from mitti.response import LifespanResponse
-from mitti.response import HTTPResponse
 
 from mitti.routing import Router
 
@@ -25,9 +23,6 @@ class Mitti:
         # how? because list hold references, so we do not need to recreate the router
         self._router = Router(routes=self._routes)
 
-    def add_route(self, route: BaseRoute):
-        self._routes.append(route)
-
     async def _lifespan(
         self,
         scope: Scope,
@@ -36,8 +31,11 @@ class Mitti:
     ) -> None:
         while True:
             message = await receive()
-            response = LifespanResponse(scope, send)
-            await response(message)
+            if message["type"] == "lifespan.startup":
+                await send({"type": "lifespan.startup.complete"})
+            elif message["type"] == "lifespan.shutdown":
+                await send({"type": "lifespan.shutdown.complete"})
+                return
 
     async def _http(
         self,
@@ -46,9 +44,10 @@ class Mitti:
         send: Send,
     ) -> None:
         request = Request(scope, receive)
-        await self._router(request)
-        response = HTTPResponse(scope, send)
-        await response(send)
+        result = await self._router(request)
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": str(result).encode("utf-8")})
+
 
     async def __call__(
         self,
@@ -63,5 +62,3 @@ class Mitti:
 
         if _scope["type"] == "http":
             await self._http(_scope, receive, send)
-
-        raise RuntimeError("Type is not handled by the app")

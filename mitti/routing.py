@@ -44,17 +44,16 @@ class APIRoute(BaseRoute):
         self._methods = methods
         self._path_regex = compile_path(self._path)
 
-    async def match(self, request: BaseRequest) -> tuple[Match, dict]:
+    def match(self, request: BaseRequest) -> tuple[Match, dict]:
         if not isinstance(request, Request):
             raise RuntimeError("Invalid route instance")
         match_obj = self._path_regex.match(request.path)
         if match_obj:
             matched_params = match_obj.groupdict()
-            child_scope = {"endpoint": self._handler, "path_params": matched_params}
             if self._methods and request.method not in self._methods:
-                return Match.PARTIAL, child_scope
+                return Match.PARTIAL, {}
             else:
-                return Match.FULL, child_scope
+                return Match.FULL, {}
         return Match.NONE, {}
 
     async def handle(self, request: BaseRequest):

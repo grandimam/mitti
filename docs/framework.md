@@ -1027,12 +1027,12 @@ Then:
 # routes/users/dependencies.py
 
 from mitti import dependency, use
-from app.dependencies import database
+from main.dependencies import database
 
 
 @dependency
 async def current_user(
-    db: Database = use(database),
+        db: Database = use(database),
 ):
     ...
 ```
@@ -1415,12 +1415,12 @@ async def database():
 # app/routes/users/dependencies.py
 
 from mitti import dependency, use
-from app.dependencies import database
+from main.dependencies import database
 
 
 @dependency
 async def current_user(
-    db: Database = use(database),
+        db: Database = use(database),
 ) -> User:
     ...
 ```
