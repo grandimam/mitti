@@ -5,9 +5,16 @@ from abc import abstractmethod
 
 from mitti.request import BaseRequest
 from mitti.request import Request
-from mitti.schema import Match
 
 from collections.abc import Callable
+
+from enum import Enum
+
+
+class Match(Enum):
+    NONE = 0
+    PARTIAL = 1
+    FULL = 2
 
 PARAM_RE = re.compile(r"{([a-zA-Z_][a-zA-Z0-9_]*)}")
 

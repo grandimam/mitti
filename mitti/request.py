@@ -21,7 +21,7 @@ class BaseRequest(ABC):
 
     @abstractmethod
     async def body(self):
-        raise NotImplementedError("Body is not implemented")
+        raise NotImplementedError
 
 
 @final

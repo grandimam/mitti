@@ -3,7 +3,6 @@ from mitti.routing import APIRoute
 
 
 async def get_users(request):
-    print("it is coming in the handler")
     return 1234
 
 
