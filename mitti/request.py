@@ -6,6 +6,11 @@ from urllib.parse import parse_qsl
 from mitti.types import Receive
 from mitti.types import Scope
 
+from abc import ABC
+from abc import abstractmethod
+
+from dataclasses import dataclass
+
 
 class Headers:
     def __init__(self, headers) -> None:
@@ -20,39 +25,41 @@ class QueryParams:
         )
 
 
-@final
-class Request:
-    def __init__(
-        self,
-        scope: Scope,
-        receive: Receive,
-    ) -> None:
-        self._scope = scope
-        self._receive = receive
+@dataclass
+class BaseRequest(ABC):
+    scope = Scope
+    receive = Receive
 
+    @abstractmethod
+    async def body(self):
+        raise NotImplementedError("Body is not implemented")
+
+
+@final
+class Request(BaseRequest):
     @cached_property
     def path(self) -> str:
-        return self._scope["path"]
+        return self.scope["path"]
 
     @cached_property
     def method(self) -> str:
-        return self._scope["method"]
+        return self.scope["method"]
 
     @cached_property
     def headers(self) -> Headers:
-        _headers = self._scope["headers"]
+        _headers = self.scope["headers"]
         return Headers(_headers)
 
     @cached_property
     def query(self) -> QueryParams:
-        _query = self._scope["query_string"]
+        _query = self.scope["query_string"]
         return QueryParams(_query)
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []
 
         while True:
-            _payload = await self._receive()
+            _payload = await self.receive()
             _type = _payload["type"]
 
             if _type == "http.disconnect":
