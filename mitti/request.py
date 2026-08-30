@@ -1,29 +1,12 @@
 import json
 from functools import cached_property
 from typing import final
-from urllib.parse import parse_qsl
 
 from mitti.types import Receive
 from mitti.types import Scope
 
 from abc import ABC
 from abc import abstractmethod
-
-from dataclasses import dataclass
-
-
-class Headers:
-    def __init__(self, headers) -> None:
-        self._raw = headers
-
-
-class QueryParams:
-    def __init__(self, query_string: bytes = b"") -> None:
-        self._query = parse_qsl(
-            query_string.decode("latin-1"),
-            keep_blank_values=True,
-        )
-
 
 
 class BaseRequest(ABC):
@@ -50,16 +33,6 @@ class Request(BaseRequest):
     @cached_property
     def method(self) -> str:
         return self._scope["method"]
-
-    @cached_property
-    def headers(self) -> Headers:
-        _headers = self._scope["headers"]
-        return Headers(_headers)
-
-    @cached_property
-    def query(self) -> QueryParams:
-        _query = self._scope["query_string"]
-        return QueryParams(_query)
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []
