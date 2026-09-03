@@ -3,18 +3,23 @@ import re
 from abc import ABC
 from abc import abstractmethod
 
-from mitti.request import BaseRequest
 from mitti.request import Request
 
 from collections.abc import Callable
 
 from enum import Enum
 
+from mitti.types import Receive
+from mitti.types import Scope
+from mitti.types import Send
+from mitti.response import Response
+
 
 class Match(Enum):
     NONE = 0
     PARTIAL = 1
     FULL = 2
+
 
 PARAM_RE = re.compile(r"{([a-zA-Z_][a-zA-Z0-9_]*)}")
 
@@ -30,59 +35,71 @@ def compile_path(path: str) -> re.Pattern:
 
 class BaseRoute(ABC):
     @abstractmethod
-    def match(self, request: BaseRequest) -> tuple[Match, dict]:
+    def match(self, scope: Scope, receive: Receive) -> Match:
         raise NotImplementedError
 
-    @abstractmethod
-    async def handle(self, request: BaseRequest):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
         raise NotImplementedError
 
 
 class APIRoute(BaseRoute):
     def __init__(
-        self,
-        path: str,
-        *,
-        methods: list[str] | None,
-        handler: Callable | None,
+            self,
+            path: str,
+            *,
+            methods: list[str] | None,
+            handler: Callable | None,
     ):
         self._path = path
         self._handler = handler
         self._methods = methods
         self._path_regex = compile_path(self._path)
+        self._app = None
 
-    def match(self, request: BaseRequest) -> tuple[Match, dict]:
-        if not isinstance(request, Request):
-            raise RuntimeError("Invalid route instance")
-        match_obj = self._path_regex.match(request.path)
-        if match_obj:
-            matched_params = match_obj.groupdict()
-            if self._methods and request.method not in self._methods:
-                return Match.PARTIAL, {}
-            else:
-                return Match.FULL, {}
-        return Match.NONE, {}
+    def match(self, scope: Scope, receive: Receive) -> Match:
+        request = Request(scope, receive)
+        match = self._path_regex.match(request.path)
+        if match and request.method in self._methods:
+            return Match.FULL
+        if match:
+            return Match.PARTIAL
+        return Match.NONE
 
-    async def handle(self, request: BaseRequest):
-        return await self._handler(request)
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        request = Request(scope, receive)
+        result = await self._handler(request)
+        return await Response(200, content=result)(scope, receive, send)
 
 
 class Router:
     def __init__(
-        self,
-        *,
-        routes: list[BaseRoute] | None = None,
+            self,
+            *,
+            routes: list[BaseRoute] | None = None,
     ) -> None:
         self._routes: list[BaseRoute] = routes if routes else []
 
+    @staticmethod
+    def wrap_asgi(func: Callable | None = None):
+        async def not_found(scope: Scope, receive: Receive, send: Send):
+            response = Response(status_code=500, content="Route Not Found")
+            return await response(scope, receive, send)
+
+        async def found(scope: Scope, receive: Receive, send: Send):
+            return await func(scope, receive, send)
+
+        return found if func else not_found
+
     async def __call__(
-        self,
-        request: BaseRequest,
-        *args,
-        **kwargs,
+            self,
+            scope: Scope,
+            receive: Receive,
+            send: Send,
     ):
         for route in self._routes:
-            match, child_scope = route.match(request)
-            if match.FULL:
-                return await route.handle(request)
-        return "Not found"
+            match = route.match(scope, receive)
+            if match.value in [match.PARTIAL.value, match.NONE.value]:
+                return await Response(status_code=405, content="Method Not Allowed")(scope, receive, send)
+            if match == Match.FULL:
+                return await Router.wrap_asgi(route)(scope, receive, send)
+        return await Router.wrap_asgi()(scope, receive, send)

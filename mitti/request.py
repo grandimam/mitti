@@ -1,44 +1,29 @@
+from dataclasses import dataclass
+
 import json
 from functools import cached_property
-from typing import final
 
 from mitti.types import Receive
 from mitti.types import Scope
 
-from abc import ABC
-from abc import abstractmethod
+@dataclass
+class Request:
+    scope: Scope
+    receive: Receive
 
-
-class BaseRequest(ABC):
-
-    def __init__(
-            self,
-            scope: Scope,
-            receive: Receive,
-    ):
-        self._scope = scope
-        self._receive = receive
-
-    @abstractmethod
-    async def body(self):
-        raise NotImplementedError
-
-
-@final
-class Request(BaseRequest):
     @cached_property
     def path(self) -> str:
-        return self._scope["path"]
+        return self.scope["path"]
 
     @cached_property
     def method(self) -> str:
-        return self._scope["method"]
+        return self.scope["method"]
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []
 
         while True:
-            _payload = await self._receive()
+            _payload = await self.receive()
             _type = _payload["type"]
 
             if _type == "http.disconnect":

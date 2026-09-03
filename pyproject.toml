@@ -36,3 +36,8 @@ packages = ["mitti"]
 
 [tool.hatch.build.targets.sdist]
 include = ["mitti"]
+
+[dependency-groups]
+dev = [
+    "uvicorn>=0.52.4",
+]

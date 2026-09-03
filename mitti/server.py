@@ -7,9 +7,9 @@ from mitti.types import Receive
 from mitti.types import Send
 
 from mitti.routing import BaseRoute
-from mitti.request import Request
-
 from mitti.routing import Router
+
+from mitti.middleware import BaseMiddleware
 
 
 class Mitti:
@@ -17,11 +17,12 @@ class Mitti:
         self,
         *,
         routes: list[BaseRoute],
+        middlewares: list[BaseMiddleware] | None = None
     ) -> None:
-        self._routes = routes
-        # routes are defined once, so adding new routes will automatically be injected into router
-        # how? because list hold references, so we do not need to recreate the router
-        self._router = Router(routes=self._routes)
+        if not middlewares:
+            self._middlewares = []
+        self._router = Router(routes=routes)
+        self._app = self._router
 
     async def _lifespan(
         self,
@@ -43,10 +44,7 @@ class Mitti:
         receive: Receive,
         send: Send,
     ) -> None:
-        request = Request(scope, receive)
-        result = await self._router(request)
-        await send({"type": "http.response.start", "status": 200, "headers": []})
-        await send({"type": "http.response.body", "body": str(result).encode("utf-8")})
+        await self._app(scope, receive, send)
 
 
     async def __call__(

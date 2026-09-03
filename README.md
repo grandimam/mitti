@@ -38,3 +38,8 @@ lifespan, and a thread-based executor.
 uv sync
 uv run pytest
 ```
+
+## Load testing
+
+See [`docs/load-testing.md`](docs/load-testing.md) for a practical `uvicorn` +
+`hey` setup and example scripts under [`loadtest/`](loadtest).
