@@ -39,5 +39,6 @@ include = ["mitti"]
 
 [dependency-groups]
 dev = [
+    "py-spy>=0.4.2",
     "uvicorn>=0.52.4",
 ]

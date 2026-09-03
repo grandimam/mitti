@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-
 from mitti.types import Scope
 from mitti.types import Receive
 from mitti.types import Send
@@ -53,10 +51,8 @@ class Mitti:
         receive: Receive,
         send: Send,
     ):
-        _scope = copy.deepcopy(scope)
-
-        if _scope["type"] == "lifespan":
+        if scope["type"] == "lifespan":
             await self._lifespan(scope, receive, send)
 
-        if _scope["type"] == "http":
-            await self._http(_scope, receive, send)
+        if scope["type"] == "http":
+            await self._http(scope, receive, send)
