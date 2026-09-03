@@ -1,25 +1,11 @@
 from mitti.server import Mitti
-from mitti.routing import APIRoute
 
+app = Mitti()
 
+@app.get(path="/", methods=["GET"])
 async def index(request):
     return "Hello World"
 
-async def get_users(request):
+@app.get(path="/users/{user_id}", methods=["GET"])
+async def users(request):
     return "1234"
-
-
-app = Mitti(
-    routes=[
-        APIRoute(
-            path="/",
-            methods=["GET"],
-            handler=index,
-        ),
-        APIRoute(
-            path="/users/{user_id}",
-            methods=["GET"],
-            handler=get_users,
-        )
-    ]
-)

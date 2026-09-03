@@ -42,7 +42,7 @@ class BaseRoute(ABC):
         raise NotImplementedError
 
 
-class APIRoute(BaseRoute):
+class Route(BaseRoute):
     def __init__(
             self,
             path: str,
@@ -88,6 +88,17 @@ class Router:
             return await func(scope, receive, send)
 
         return found if func else not_found
+
+
+    def add_route(
+            self,
+            *,
+            path: str,
+            methods: list[str],
+            handler: Callable,
+    ):
+        self._routes.append(Route(path, methods=methods, handler=handler))
+
 
     async def __call__(
             self,

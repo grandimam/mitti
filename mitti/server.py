@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Callable
+
 from mitti.types import Scope
 from mitti.types import Receive
 from mitti.types import Send
@@ -7,20 +9,29 @@ from mitti.types import Send
 from mitti.routing import BaseRoute
 from mitti.routing import Router
 
-from mitti.middleware import BaseMiddleware
-
 
 class Mitti:
     def __init__(
         self,
         *,
-        routes: list[BaseRoute],
-        middlewares: list[BaseMiddleware] | None = None
+        routes: list[BaseRoute] | None = None
     ) -> None:
-        if not middlewares:
-            self._middlewares = []
+        if not routes:
+            routes = []
         self._router = Router(routes=routes)
         self._app = self._router
+
+
+    def get(
+            self,
+            *,
+            path: str,
+            methods: list[str]
+    ):
+        def wrap(func: Callable):
+            self._router.add_route(path=path, methods=methods, handler=func)
+            return func
+        return wrap
 
     async def _lifespan(
         self,
