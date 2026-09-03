@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs
+
 from dataclasses import dataclass
 
 import json
@@ -5,6 +7,8 @@ from functools import cached_property
 
 from mitti.types import Receive
 from mitti.types import Scope
+
+from typing import Any
 
 @dataclass
 class Request:
@@ -18,6 +22,11 @@ class Request:
     @cached_property
     def method(self) -> str:
         return self.scope["method"]
+
+    @cached_property
+    def params(self) -> dict[str, Any]:
+        query_str = self.scope["query_string"]
+        return parse_qs(query_str)
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []

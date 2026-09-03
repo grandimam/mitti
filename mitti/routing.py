@@ -52,9 +52,8 @@ class APIRoute(BaseRoute):
     ):
         self._path = path
         self._handler = handler
-        self._methods = methods
+        self._methods = methods or ["GET"]
         self._path_regex = compile_path(self._path)
-        self._app = None
 
     def match(self, scope: Scope, receive: Receive) -> Match:
         request = Request(scope, receive)
@@ -68,7 +67,7 @@ class APIRoute(BaseRoute):
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         request = Request(scope, receive)
         result = await self._handler(request)
-        return await Response(200, content=result)(scope, receive, send)
+        return await Response(content=result)(scope, receive, send)
 
 
 class Router:
@@ -98,7 +97,7 @@ class Router:
     ):
         for route in self._routes:
             match = route.match(scope, receive)
-            if match.value in [match.PARTIAL.value, match.NONE.value]:
+            if match == Match.PARTIAL:
                 return await Response(status_code=405, content="Method Not Allowed")(scope, receive, send)
             if match == Match.FULL:
                 return await Router.wrap_asgi(route)(scope, receive, send)
