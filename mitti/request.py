@@ -1,8 +1,6 @@
 from urllib.parse import parse_qs
 
 from dataclasses import dataclass
-
-import json
 from functools import cached_property
 
 from mitti.types import Receive
@@ -45,7 +43,3 @@ class Request:
                     break
 
         return b"".join(_chunks)
-
-    async def json(self):
-        _body: bytes | None = await self.body()
-        return json.loads(_body) if _body else None

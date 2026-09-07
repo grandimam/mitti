@@ -2,6 +2,7 @@ import re
 
 from abc import ABC
 from abc import abstractmethod
+from typing import Any
 
 from mitti.request import Request
 
@@ -13,6 +14,8 @@ from mitti.types import Receive
 from mitti.types import Scope
 from mitti.types import Send
 from mitti.response import Response
+
+from mitti.inspector import inspect_handler
 
 
 class Match(Enum):
@@ -48,25 +51,36 @@ class Route(BaseRoute):
             path: str,
             *,
             methods: list[str] | None,
-            handler: Callable | None,
+            handler: Callable[..., Any],
     ):
         self._path = path
         self._handler = handler
         self._methods = methods or ["GET"]
         self._path_regex = compile_path(self._path)
 
+        # Now, it's easy.
+        # I need to store the handler parameters in ordered map.
+        # Then, set the parameter values, and send the unpacked values
+
+        self._path_params = {}
+        self._func_params = inspect_handler(self._handler)
+
     def match(self, scope: Scope, receive: Receive) -> Match:
-        request = Request(scope, receive)
-        match = self._path_regex.match(request.path)
-        if match and request.method in self._methods:
-            return Match.FULL
-        if match:
-            return Match.PARTIAL
-        return Match.NONE
+        match = self._path_regex.match(scope["path"])
+        if not match:
+            return Match.NONE
+        self._path_params = match.groupdict() # path params values
+        return Match.FULL if scope["method"] in self._methods else Match.PARTIAL
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        request = Request(scope, receive)
-        result = await self._handler(request)
+        # request = Request(scope, receive)
+        _all_func_params = {}
+
+        for param, param_conv in self._func_params.items():
+            path_param_val = self._path_params.get(param, None)
+            _all_func_params[param] = param_conv(path_param_val).convert()
+
+        result = await self._handler(**_all_func_params)
         return await Response(content=result)(scope, receive, send)
 
 
