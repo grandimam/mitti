@@ -29,9 +29,17 @@ class StrConverter(BaseConverter):
     def convert(self) -> str:
         return str(self._value)
 
+class BoolConverter(BaseConverter):
+
+    def convert(self) -> Any:
+        if isinstance(type(self._value), bool):
+            return bool(self._value)
+        raise TypeError(f"Invalid request parameter type: {type(self._value).__name__}")
+
 CONVERTERS = {
     "str": StrConverter,
     "int": IntConverter,
+    "bool": BoolConverter,
 }
 
 def inspect_handler(func: Callable[..., Any]) -> dict[str, Any]:
@@ -40,5 +48,4 @@ def inspect_handler(func: Callable[..., Any]) -> dict[str, Any]:
 
     for name, param in sig.parameters.items():
         params[name] = CONVERTERS[param.annotation.__name__]
-
     return params

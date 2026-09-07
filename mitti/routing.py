@@ -65,6 +65,7 @@ class Route(BaseRoute):
         self._path_params = {}
         self._func_params = inspect_handler(self._handler)
 
+
     def match(self, scope: Scope, receive: Receive) -> Match:
         match = self._path_regex.match(scope["path"])
         if not match:
@@ -73,15 +74,20 @@ class Route(BaseRoute):
         return Match.FULL if scope["method"] in self._methods else Match.PARTIAL
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        # request = Request(scope, receive)
-        _all_func_params = {}
+        result = None
+        status_code = 500
+        try:
+            # request = Request(scope, receive)
+            _all_func_params = {}
 
-        for param, param_conv in self._func_params.items():
-            path_param_val = self._path_params.get(param, None)
-            _all_func_params[param] = param_conv(path_param_val).convert()
+            for param, param_conv in self._func_params.items():
+                path_param_val = self._path_params.get(param, None)
+                _all_func_params[param] = param_conv(path_param_val).convert()
 
-        result = await self._handler(**_all_func_params)
-        return await Response(content=result)(scope, receive, send)
+            result = await self._handler(**_all_func_params)
+        except Exception as e:
+            print(e)
+        return await Response(content=result, status_code=status_code)(scope, receive, send)
 
 
 class Router:
