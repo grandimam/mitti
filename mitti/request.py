@@ -6,8 +6,6 @@ from functools import cached_property
 from mitti.types import Receive
 from mitti.types import Scope
 
-from typing import Any
-
 @dataclass
 class Request:
     scope: Scope
@@ -22,9 +20,11 @@ class Request:
         return self.scope["method"]
 
     @cached_property
-    def params(self) -> dict[str, Any]:
+    def params(self) -> dict[str, list[str]]:
         query_str = self.scope["query_string"]
-        return parse_qs(query_str)
+        if isinstance(query_str, bytes):
+            query_str = query_str.decode("utf-8")
+        return parse_qs(query_str, keep_blank_values=True)
 
     async def body(self) -> bytes | None:
         _chunks: list[bytes] = []
