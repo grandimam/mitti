@@ -5,7 +5,7 @@ from enum import Enum, IntEnum
 from typing import Literal
 from uuid import UUID
 
-from mitti.inspector import HandlerInspector
+from mitti.inspector import Inspector
 from mitti.server import Mitti
 from tests.test_route_validation import make_request
 
@@ -108,4 +108,4 @@ class ParameterTypeTests(unittest.TestCase):
 
                 handler.__annotations__ = {"value": annotation}
                 with self.assertRaises(TypeError):
-                    HandlerInspector.inspect(handler, path_names)
+                    Inspector.inspect(handler, path_names)

@@ -15,7 +15,7 @@ from mitti.types import Scope
 from mitti.types import Send
 from mitti.response import Response
 
-from mitti.inspector import HandlerInspector
+from mitti.inspector import Inspector
 from mitti.inspector import ParameterSource
 from mitti.exceptions import RequestValidationError
 
@@ -60,7 +60,7 @@ class Route(BaseRoute):
         self._methods = methods or ["GET"]
         self._path_regex = compile_path(self._path)
         self._path_parameter_names = set(PARAM_RE.findall(self._path))
-        self._handler_params = HandlerInspector.inspect(
+        self._handler_params = Inspector.inspect(
             self._handler,
             self._path_parameter_names,
         )
@@ -90,9 +90,10 @@ class Route(BaseRoute):
                         name,
                         "expected one value",
                     )
+                # query params returns an array always.
                 raw_value = values[0] if values else None
 
-            if raw_value is None:
+            if not raw_value:
                 if parameter.required:
                     raise RequestValidationError(
                         parameter.source.value,
