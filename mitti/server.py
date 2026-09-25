@@ -8,6 +8,7 @@ from mitti.types import Send
 
 from mitti.routing import BaseRoute
 from mitti.routing import Router
+from mitti.middleware import ExceptionHandler
 
 
 class Mitti:
@@ -19,7 +20,7 @@ class Mitti:
         if not routes:
             routes = []
         self._router = Router(routes=routes)
-        self._app = self._router
+        self._app = ExceptionHandler(self._router)
 
 
     def get(

@@ -15,7 +15,9 @@ from mitti.types import Scope
 from mitti.types import Send
 from mitti.response import Response
 
-from mitti.inspector import inspect_handler
+from mitti.inspector import HandlerInspector
+from mitti.inspector import ParameterSource
+from mitti.exceptions import RequestValidationError
 
 
 class Match(Enum):
@@ -57,37 +59,64 @@ class Route(BaseRoute):
         self._handler = handler
         self._methods = methods or ["GET"]
         self._path_regex = compile_path(self._path)
-
-        # Now, it's easy.
-        # I need to store the handler parameters in ordered map.
-        # Then, set the parameter values, and send the unpacked values
-
-        self._path_params = {}
-        self._func_params = inspect_handler(self._handler)
+        self._path_parameter_names = set(PARAM_RE.findall(self._path))
+        self._handler_params = HandlerInspector.inspect(
+            self._handler,
+            self._path_parameter_names,
+        )
 
 
     def match(self, scope: Scope, receive: Receive) -> Match:
         match = self._path_regex.match(scope["path"])
         if not match:
             return Match.NONE
-        self._path_params = match.groupdict() # path params values
+        scope["path_params"] = match.groupdict()
         return Match.FULL if scope["method"] in self._methods else Match.PARTIAL
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        result = None
-        status_code = 500
-        try:
-            # request = Request(scope, receive)
-            _all_func_params = {}
+        request = Request(scope, receive)
+        path_params = scope.get("path_params", {})
+        query_params = request.params
+        handler_arguments = {}
 
-            for param, param_conv in self._func_params.items():
-                path_param_val = self._path_params.get(param, None)
-                _all_func_params[param] = param_conv(path_param_val).convert()
+        for name, parameter in self._handler_params.items():
+            if parameter.source is ParameterSource.PATH:
+                raw_value = path_params.get(name)
+            else:
+                values = query_params.get(name)
+                if values and len(values) > 1 and not parameter.multiple:
+                    raise RequestValidationError(
+                        parameter.source.value,
+                        name,
+                        "expected one value",
+                    )
+                raw_value = values[0] if values else None
 
-            result = await self._handler(**_all_func_params)
-        except Exception as e:
-            print(e)
-        return await Response(content=result, status_code=status_code)(scope, receive, send)
+            if raw_value is None:
+                if parameter.required:
+                    raise RequestValidationError(
+                        parameter.source.value,
+                        name,
+                        "field required",
+                    )
+                continue
+
+            try:
+                if parameter.multiple:
+                    handler_arguments[name] = [parameter.converter(value) for value in values]
+                else:
+                    handler_arguments[name] = parameter.converter(raw_value)
+            except (TypeError, ValueError) as exc:
+                raise RequestValidationError(
+                    parameter.source.value,
+                    name,
+                    str(exc),
+                ) from exc
+
+        result = await self._handler(**handler_arguments)
+        if isinstance(result, Response):
+            return await result(scope, receive, send)
+        return await Response(content=result)(scope, receive, send)
 
 
 class Router:
